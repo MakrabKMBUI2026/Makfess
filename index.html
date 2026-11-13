@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Makfess</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500;1,9..144,900&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+ color-scheme:light;
+ --ivory:#f5efe3;--paper:#fffdf7;--paper2:#faf2df;--ink:#1c1b18;--mut:#5f5a4f;--rule:#d8ceb6;
+ --coral:#f0462a;--coralink:#b82f0d;--lime:#d6f54a;
+ --display:"Fraunces",Georgia,"Times New Roman",serif;
+ --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+ --out:cubic-bezier(.2,.7,.2,1);--inout:cubic-bezier(.65,0,.35,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:72px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ivory);color:var(--ink);font:16px/1.55 var(--sans);overflow-x:hidden;padding-top:env(safe-area-inset-top,0)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55;
+ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .1 0 0 0 0 .09 0 0 0 0 .06 0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:2px}
+.hide{display:none!important}
+[inert]{visibility:hidden;transition:visibility 0s .34s}
+
+/* ───── top bar ───── */
+.top{position:sticky;top:0;z-index:20;background:var(--ivory);border-bottom:1.5px solid var(--ink);padding-top:env(safe-area-inset-top,0);margin-top:calc(-1 * env(safe-area-inset-top,0px))}
+.top-in{max-width:760px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:12px}
+.brand{font:900 1.35rem/1 var(--display);font-style:italic;letter-spacing:-.03em;color:var(--ink);text-decoration:none;display:flex;align-items:baseline;gap:2px;padding:6px 0}
+.brand i{width:.42em;height:.42em;background:var(--coral);border-radius:50%;display:inline-block}
+.tabs{position:relative;display:flex;margin-left:auto}
+.tabs button,.sorts button{position:relative;z-index:1;border:0;background:none;padding:9px 14px;font-weight:600;font-size:.95rem;min-height:44px}
+.tabs .ind{position:absolute;z-index:0;top:7px;bottom:7px;left:0;width:0;background:var(--lime);transform:translateX(0);transition:transform .38s var(--inout),width .38s var(--inout)}
+.adm{display:flex;align-items:center;gap:4px}
+.adm button{border:0;background:none;color:var(--mut);font-size:.82rem;font-weight:500;padding:10px 6px;min-height:44px;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.adm button:hover{color:var(--ink)}
+.adm .on-dot{width:8px;height:8px;border-radius:50%;background:var(--coral);display:inline-block;margin-right:2px}
+
+/* admin slip */
+.drop{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--inout)}
+.drop.open{grid-template-rows:1fr}
+.drop>div{overflow:hidden}
+.slip{max-width:760px;margin:0 auto;padding:14px 16px 18px;display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+.slip .err{grid-column:1/-1;margin:0}
+@media (max-width:560px){.slip{grid-template-columns:1fr}.slip .btn{justify-self:start}}
+
+main{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:18px 16px calc(120px + env(safe-area-inset-bottom,0px))}
+.view:not(.hide){animation:viewin .4s var(--out) backwards}
+@keyframes viewin{from{opacity:0;transform:translateY(10px)}}
+
+/* ───── masthead ───── */
+.mast{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 0 22px;border-bottom:1.5px solid var(--ink);margin-bottom:14px}
+h1.wm{margin:0;font:900 clamp(3.7rem,24.5vw,9.2rem)/.84 var(--display);letter-spacing:-.045em;font-style:italic;display:flex;flex-wrap:nowrap}
+.ch{display:inline-block;overflow:hidden;padding:.06em .02em .1em;margin:-.06em -.02em -.1em}
+.ch>span{display:inline-block;transform:translateY(0)}
+.intro .ch>span{transform:translateY(108%);animation:up .85s var(--out) forwards;animation-delay:calc(var(--k)*60ms + 120ms)}
+@keyframes up{to{transform:none}}
+.mast-side{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.tag{margin:0;font:500 1.15rem/1.2 var(--display);font-style:italic}
+.tally{margin:0;color:var(--mut);font-size:.9rem}
+.tally b{font:900 1.5rem/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums;margin-right:4px}
+.intro .tag,.intro .tally{animation:slidein .7s var(--out) .75s backwards}
+.intro .top{animation:wipe .7s var(--inout) backwards}
+@keyframes slidein{from{opacity:0;transform:translateX(18px)}}
+@keyframes wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+
+/* ───── feed tools ───── */
+.tools{display:flex;gap:14px 18px;flex-wrap:wrap;align-items:flex-end;margin:0 0 18px}
+.sorts{position:relative;display:flex}
+.sorts button{padding:8px 14px 10px 0;color:var(--mut);min-height:44px}
+.sorts button.on{color:var(--ink)}
+.sorts .sind{position:absolute;left:0;bottom:4px;height:3px;width:0;background:var(--coral);transform:translateX(0);transition:transform .35s var(--inout),width .35s var(--inout)}
+.search{flex:1;min-width:170px}
+.search input{width:100%;border:0;border-bottom:1.5px solid var(--ink);background:none;padding:10px 0;min-height:44px;border-radius:0}
+.search input::placeholder{color:var(--mut)}
+
+/* ───── entries ───── */
+.entry{position:relative;display:grid;grid-template-columns:76px 1fr;gap:0 14px;padding:20px 14px 16px;margin-bottom:14px;background:var(--paper);border:1.5px solid var(--ink);border-radius:3px;transition:transform .25s var(--out),box-shadow .25s var(--out),background .25s}
+.entry:nth-of-type(even){background:var(--paper2)}
+@media (min-width:720px){.entry:nth-of-type(even){margin-left:34px}.entry:nth-of-type(odd){margin-right:34px}}
+@media (hover:hover){.entry:hover{transform:translateY(-3px);box-shadow:0 10px 0 -6px var(--ink);background:#fff}}
+.anim .entry{animation:rise .65s var(--out) backwards;animation-delay:calc(var(--i)*75ms)}
+@keyframes rise{from{clip-path:inset(0 0 100% 0);transform:translateY(18px)}to{clip-path:inset(0 0 0 0);transform:none}}
+.entry.fresh{animation:fresh 2.2s var(--out)}
+@keyframes fresh{0%,35%{background:var(--lime)}100%{background:var(--paper)}}
+.num{font:900 2.4rem/.9 var(--display);font-style:italic;color:var(--coral);font-variant-numeric:lining-nums;letter-spacing:-.03em}
+.num small{display:block;font:600 .72rem/1 var(--sans);font-style:normal;color:var(--mut);letter-spacing:0;margin-bottom:6px}
+.by{display:flex;flex-wrap:wrap;gap:2px 18px;margin-bottom:10px;font-size:.92rem}
+.by i{font-style:normal;color:var(--mut);margin-right:5px}
+.by b{font-weight:600;overflow-wrap:anywhere}
+.by .to b{background:linear-gradient(transparent 58%,var(--lime) 58%);padding:0 2px}
+.msg{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--display);font-weight:400}
+.sz-xl{font-size:clamp(1.55rem,5.5vw,2.1rem);line-height:1.15;font-weight:600;letter-spacing:-.015em}
+.sz-lg{font-size:1.3rem;line-height:1.3}
+.sz-md{font-size:1.06rem;line-height:1.5}
+.foot{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:.82rem;color:var(--mut)}
+.del{background:none;border:0;color:var(--coralink);font-weight:600;font-size:.82rem;text-decoration:underline;padding:8px 4px;min-height:36px}
+.react{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px;margin-left:-8px}
+.react button{border:0;background:none;padding:8px;min-height:44px;font-weight:600;font-size:.9rem;position:relative;border-radius:2px;transition:background .2s,transform .12s}
+.react button b{font:900 1rem var(--display);margin-left:4px;font-variant-numeric:tabular-nums}
+.react button:hover{background:rgba(28,27,24,.07)}
+.react button:active{transform:translateY(1px) scale(.97)}
+.react button.on{background:var(--lime)}
+.react button[disabled]{opacity:.55}
+.cmw{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s var(--inout)}
+.cmw.open{grid-template-rows:1fr}
+.cmw>div{overflow:hidden}
+.cm{padding:8px 0 6px;margin-top:4px;border-top:1px solid var(--rule)}
+.c{border-left:3px solid var(--coral);padding:2px 0 2px 12px;margin:12px 0;font-size:.95rem}
+.c .n{font-weight:600}.c .t{color:var(--mut);font-size:.78rem;margin-left:8px}
+.c .msg{font-family:var(--sans);font-size:.95rem;line-height:1.5;margin-top:2px}
+.cf{display:grid;gap:8px;margin-top:10px}
+.cf .err{margin:0}
+@media (max-width:560px){
+ .entry{grid-template-columns:1fr;padding:16px 14px 12px}
+ .num{display:flex;align-items:baseline;gap:8px;font-size:1.9rem;margin-bottom:8px}
+ .num small{margin:0}
+}
+
+/* ───── fields ───── */
+label{display:block;font-size:.82rem;font-weight:600;color:var(--mut);margin:0}
+.u{width:100%;border:0;border-bottom:1.5px solid var(--ink);background:none;padding:9px 0;min-height:44px;border-radius:0;transition:border-color .2s,box-shadow .2s}
+.u:focus{outline:none;border-bottom-color:var(--coral);box-shadow:0 3px 0 -1px var(--coral)}
+.u::placeholder{color:#8a8473}
+
+/* ───── compose ───── */
+.cw{padding-top:8px}
+.cw h2{margin:0 0 4px;font:900 clamp(2.6rem,12vw,4.6rem)/.9 var(--display);font-style:italic;letter-spacing:-.04em}
+.cw .lead{margin:0 0 22px;color:var(--mut);max-width:34ch}
+.sheetform{position:relative;background:var(--paper);border:1.5px solid var(--ink);border-radius:3px;padding:22px 16px 16px;transition:transform .3s var(--out)}
+.sheetform::before{content:"";position:absolute;left:34px;top:0;bottom:0;width:1.5px;background:rgba(240,70,42,.55);pointer-events:none}
+.addr{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px;margin:0 0 18px 20px}
+@media (max-width:560px){.addr{grid-template-columns:1fr}}
+.ruled{display:block;width:100%;border:0;background:transparent;resize:vertical;min-height:224px;padding:0 0 0 20px;line-height:32px;font:400 1.15rem/32px var(--display);
+ background-image:repeating-linear-gradient(to bottom,transparent 0 31px,rgba(28,27,24,.16) 31px 32px);background-attachment:local}
+.ruled:focus{outline:none}
+.ruled::placeholder{color:#8a8473}
+.meter{height:3px;background:var(--rule);margin:14px 0 8px 20px;overflow:hidden}
+.meter i{display:block;height:100%;width:100%;background:var(--ink);transform-origin:left;transform:scaleX(0);transition:transform .25s var(--out),background .25s}
+.meter.low i{background:var(--coral)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-left:20px}
+.cnt{font:600 .9rem var(--sans);color:var(--mut);font-variant-numeric:tabular-nums}
+.cnt b{font:900 1.35rem var(--display);color:var(--ink);transition:color .2s}
+.cnt.low b{color:var(--coralink)}
+.err{color:var(--coralink);font-size:.9rem;font-weight:600;min-height:1px;margin:10px 0 0 20px}
+.shake{animation:shake .38s var(--inout)}
+@keyframes shake{20%{transform:translateX(-6px)}45%{transform:translateX(5px)}70%{transform:translateX(-3px)}}
+.rule-note{margin:16px 0 0 20px;font-size:.86rem;color:var(--mut);max-width:46ch}
+
+/* ───── buttons ───── */
+.btn{position:relative;overflow:hidden;border:1.5px solid var(--ink);background:var(--ink);color:var(--ivory);padding:11px 22px;min-height:48px;font-weight:700;border-radius:3px;transition:transform .12s,color .25s,background-color .25s,border-color .25s;isolation:isolate}
+.btn::before{content:"";position:absolute;inset:0;background:var(--coral);transform:translateY(101%);transition:transform .32s var(--out);z-index:-1}
+@media (hover:hover){.btn:not(:disabled):hover{color:var(--ink)}.btn:not(:disabled):hover::before{transform:none}}
+.btn:not(:disabled):active{transform:translateY(2px) scale(.985)}
+.btn:disabled{background:transparent;color:var(--mut);border-color:var(--rule);cursor:not-allowed}
+.btn.busy::before{transform:none;animation:busy 1s linear infinite;background:repeating-linear-gradient(135deg,var(--coral) 0 10px,var(--lime) 10px 20px);background-size:28px 28px}
+.btn.busy{color:var(--ink)}
+@keyframes busy{to{background-position:28px 0}}
+.lnk{background:none;border:0;padding:6px 0;font-weight:700;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:2px;text-decoration-color:var(--coral);min-height:44px}
+
+/* ───── empty / loading ───── */
+.empty{padding:34px 0 20px}
+.empty h2{margin:0 0 6px;font:900 clamp(1.9rem,8vw,2.8rem)/1 var(--display);font-style:italic;letter-spacing:-.03em}
+.empty p{margin:0 0 10px;color:var(--mut)}
+.sk{height:132px;border:1.5px solid var(--rule);border-radius:3px;margin-bottom:14px;background-image:repeating-linear-gradient(to bottom,transparent 0 27px,rgba(28,27,24,.09) 27px 28px);animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+
+/* ───── fab, toast ───── */
+.fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));z-index:15;background:var(--coral);color:var(--ink);border:1.5px solid var(--ink);border-radius:3px;padding:12px 20px;min-height:52px;font-weight:700;box-shadow:0 4px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.fab:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+.toast{position:fixed;left:50%;top:calc(66px + env(safe-area-inset-top,0px));transform:translate(-50%,-10px);background:var(--ink);color:var(--ivory);padding:11px 18px;border-radius:3px;font-weight:600;font-size:.92rem;opacity:0;pointer-events:none;transition:opacity .2s,transform .25s var(--out);z-index:60;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ───── sent animation: a sheet folds and flies to the feed ───── */
+.sentlayer{position:fixed;inset:0;z-index:50;display:grid;place-items:center;pointer-events:none}
+.sheet{position:relative;width:min(84vw,340px);height:200px;perspective:900px;will-change:transform,opacity}
+.half{position:absolute;left:0;right:0;height:100px;background:var(--paper);border:1.5px solid var(--ink)}
+.half.t{top:0;overflow:hidden;border-bottom:0}
+.half.b{top:100px;transform-origin:50% 0;transform-style:preserve-3d;border:0;background:none}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--paper);border:1.5px solid var(--ink);border-top:1px dashed var(--rule)}
+.face.front{overflow:hidden}
+.face.back{transform:rotateX(180deg);background:var(--paper2)}
+.half p{position:absolute;left:0;right:0;margin:0;height:200px;padding:20px 18px;font:400 1.05rem/1.35 var(--display);overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere}
+.half.t p{top:0}.half.b p{top:-100px}
+.stamp{position:absolute;left:50%;top:50px;transform:translate(-50%,-50%) rotate(-6deg);font:900 1.6rem/1 var(--display);font-style:italic;color:var(--ink);background:var(--lime);border:1.5px solid var(--ink);padding:6px 14px;opacity:0;white-space:nowrap}
+
+/* ───── photo / gif ───── */
+.vh{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.attach{margin:12px 0 0 20px}
+.prev{display:flex;gap:12px;align-items:center;margin-top:8px}
+.prev img{width:76px;height:76px;object-fit:cover;border:1.5px solid var(--ink);background:var(--paper2);flex:none}
+.prev div{display:flex;flex-direction:column;align-items:flex-start;min-width:0;font-size:.85rem;color:var(--mut)}
+.prev span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shot{margin:16px 0 4px;max-width:440px}
+.shot .zoom{position:relative;display:block;width:100%;padding:8px;border:1.5px solid var(--ink);background:var(--paper);cursor:zoom-in;transform:rotate(-.7deg);transition:transform .25s var(--out)}
+.entry:nth-of-type(even) .shot .zoom{transform:rotate(.6deg)}
+@media (hover:hover){.shot .zoom:hover{transform:rotate(0deg) translateY(-2px)}}
+.shot .zoom::before{content:"";position:absolute;top:-10px;left:50%;width:78px;height:19px;margin-left:-39px;transform:rotate(2deg);background:rgba(214,245,74,.88);border:1px solid rgba(28,27,24,.18)}
+.shot img{display:block;max-width:100%;max-height:420px;margin:0 auto;transition:opacity .3s}
+.shot.pending .zoom{aspect-ratio:4/3;background:repeating-linear-gradient(135deg,var(--paper2) 0 10px,var(--paper) 10px 20px)}
+.shot.pending img{opacity:0;position:absolute}
+.shot.broken .zoom{cursor:default;aspect-ratio:auto;padding:18px;text-align:center;color:var(--mut);font-size:.88rem}
+.lb{position:fixed;inset:0;z-index:70;background:rgba(28,27,24,.93);display:grid;place-items:center;padding:16px;animation:viewin .25s var(--out)}
+.lb img{max-width:94vw;max-height:84vh;display:block;border:6px solid var(--paper)}
+.lb .lnk{position:absolute;top:max(10px,env(safe-area-inset-top,0px));right:12px;color:var(--ivory);font-size:1rem;padding:10px 12px}
+@media (prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body class="intro">
+
+<header class="top">
+ <div class="top-in">
+  <a class="brand" href="#feed" id="brand" aria-label="Makfess, ke feed">Makfess<i aria-hidden="true"></i></a>
+  <nav class="tabs" id="tabs" aria-label="Halaman">
+   <span class="ind" id="ind" aria-hidden="true"></span>
+   <button id="t-feed" class="on" aria-current="page">Feed</button>
+   <button id="t-kirim">Tulis</button>
+  </nav>
+  <div class="adm">
+   <button id="lo" class="hide">Keluar</button>
+  </div>
+ </div>
+ <div class="drop" id="drop" aria-hidden="true"><div>
+  <section class="slip" id="v-login" aria-label="Masuk ketua">
+   <div><label for="em">Email ketua</label><input class="u" id="em" type="email" autocomplete="username"></div>
+   <div><label for="pw">Password</label><input class="u" id="pw" type="password" autocomplete="current-password"></div>
+   <button class="btn" id="li">Masuk</button>
+   <p class="err" id="lerr" role="alert"></p>
+  </section>
+ </div></div>
+</header>
+
+<main>
+ <section id="v-feed" class="view" aria-label="Feed">
+  <div class="mast">
+   <h1 class="wm" id="wm" aria-label="Makfess"></h1>
+   <div class="mast-side">
+    <p class="tag">Seru seruan aja guys</p>
+    <p class="tally"><b id="tally">0</b>makfess sejauh ini</p>
+   </div>
+  </div>
+  <div class="tools">
+   <div class="sorts" id="sorts" role="group" aria-label="Urutkan">
+    <span class="sind" id="sind" aria-hidden="true"></span>
+    <button id="s-new" class="on" aria-pressed="true">Terbaru</button>
+    <button id="s-top" aria-pressed="false">Terpopuler</button>
+   </div>
+   <div class="search"><label class="sr" for="q" style="position:absolute;left:-9999px">Cari di feed</label><input id="q" type="search" placeholder="Cari nama, divisi, atau isi" autocomplete="off"></div>
+  </div>
+  <div id="feed" aria-live="polite"></div>
+ </section>
+
+ <section id="v-kirim" class="view cw hide" aria-label="Tulis makfess">
+  <h2>Tulis makfess</h2>
+  <p class="lead">Dari dan untuk boleh dikosongkan. Pesan tampil di feed tanpa nama kalau kamu mau.</p>
+  <div class="sheetform" id="sheetform">
+   <div class="addr">
+    <div><label for="from">Dari</label><input class="u" id="from" maxlength="40" placeholder="Nama samaran" autocomplete="off"></div>
+    <div><label for="to">Untuk</label><input class="u" id="to" maxlength="40" placeholder="Nama atau divisi" autocomplete="off"></div>
+   </div>
+   <label for="txt" style="position:absolute;left:-9999px">Pesanmu</label>
+   <textarea class="ruled" id="txt" maxlength="500" placeholder="Tulis apresiasi, curhat, atau pertanyaan..."></textarea>
+   <div class="attach">
+    <input class="vh" type="file" id="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Pilih foto atau GIF">
+    <button type="button" class="lnk" id="pick">+ Foto atau GIF (opsional)</button>
+    <div class="prev hide" id="prev"><img id="previmg" alt="Pratinjau lampiran"><div><span id="prevname"></span><button type="button" class="lnk" id="unpick">Buang foto</button></div></div>
+   </div>
+   <div class="meter" id="meter"><i id="meterbar"></i></div>
+   <div class="row"><span class="cnt" id="cnt"><b id="cn">0</b>/500</span><button class="btn" id="send" disabled>Kirim makfess</button></div>
+   <p class="err" id="err" role="alert"></p>
+   <p class="rule-note">Jaga bahasa, jangan menyebut data pribadi, dan jangan menyerang orang.</p>
+  </div>
+ </section>
+</main>
+
+<button class="fab" id="fab">Tulis makfess</button>
+<div class="toast" id="toast" role="status"></div>
+<div class="lb hide" id="lb" role="dialog" aria-modal="true" aria-label="Foto diperbesar"><img id="lbimg" alt="Foto lampiran"><button class="lnk" id="lbx">Tutup</button></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL="https://thxjzxhcelblyfpjnaye.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_4GK5VWNJNjNC-YtWaR-t9A_F6DtMubh";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true}});
+const BUCKET="makfess-images";
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+let pendingImg=null,lastZoomer=null,isChair=false,posts=[],comments={},open=new Set(),sortMode="new",query="",loaded=false,total=0,freshFirst=false,animateNext=true,current="feed";
+
+/* ── helpers ── */
+function ago(t){const s=Math.max(0,(Date.now()-new Date(t))/1000);
+ if(s<60)return "baru saja";if(s<3600)return Math.floor(s/60)+" menit lalu";if(s<86400)return Math.floor(s/3600)+" jam lalu";
+ if(s<604800)return Math.floor(s/86400)+" hari lalu";
+ return new Date(t).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});}
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2600);}
+function getVotes(){try{return JSON.parse(localStorage.getItem("mf_votes")||"{}");}catch(e){return {};}}
+function setVote(id,v){try{const o=getVotes();if(v)o[id]=v;else delete o[id];localStorage.setItem("mf_votes",JSON.stringify(o));}catch(e){}}
+function shake(el){el.classList.remove("shake");void el.offsetWidth;el.classList.add("shake");}
+
+/* wordmark letters for the entrance */
+$("wm").innerHTML=[..."Makfess"].map((c,i)=>`<span class="ch" aria-hidden="true"><span style="--k:${i}">${c}</span></span>`).join("");
+
+/* sliding indicators */
+function place(box,ind,btn){if(!btn)return;ind.style.width=btn.offsetWidth-(ind.id==="sind"?14:0)+"px";ind.style.transform=`translateX(${btn.offsetLeft}px)`;}
+function placeAll(){place($("tabs"),$("ind"),$("tabs").querySelector(".on"));place($("sorts"),$("sind"),$("sorts").querySelector(".on"));}
+addEventListener("resize",placeAll);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(placeAll);
+placeAll();
+
+/* ── views ── */
+function show(t){
+ current=t;
+ $("v-kirim").classList.toggle("hide",t!=="kirim");$("v-feed").classList.toggle("hide",t!=="feed");
+ [["feed","t-feed"],["kirim","t-kirim"]].forEach(([k,id])=>{const b=$(id);b.classList.toggle("on",k===t);k===t?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current");});
+ $("fab").classList.toggle("hide",t!=="feed");
+ placeAll();window.scrollTo({top:0});
+ if(t==="kirim")setTimeout(()=>$("txt").focus({preventScroll:true}),60);
+}
+$("t-feed").onclick=()=>{if(current!=="feed"){animateNext=true;show("feed");}load();};
+$("brand").onclick=e=>{e.preventDefault();$("t-feed").click();};
+$("t-kirim").onclick=()=>show("kirim");
+$("fab").onclick=()=>show("kirim");
+
+/* ── feed ── */
+async function load(){
+ const [r,c]=await Promise.all([
+  sb.from("menfess").select("id,from_name,to_name,text,image_path,likes,dislikes,created_at").order("created_at",{ascending:false}).limit(100),
+  sb.from("menfess").select("id",{count:"exact",head:true})
+ ]);
+ let {data,error}=r;
+ if(error&&/image_path/.test(error.message||"")){const r2=await sb.from("menfess").select("id,from_name,to_name,text,likes,dislikes,created_at").order("created_at",{ascending:false}).limit(100);data=r2.data;error=r2.error;}
+ if(error){console.error(error);if(!loaded)$("feed").innerHTML='<div class="empty"><h2>Feed belum bisa dimuat.</h2><p>Periksa koneksimu, lalu coba lagi.</p><button class="lnk" data-go="reload">Muat ulang</button></div>';return;}
+ posts=data||[];total=(c&&c.count)||posts.length;comments={};
+ if(posts.length){const cr=await sb.from("comments").select("id,post_id,from_name,text,created_at").in("post_id",posts.map(p=>p.id)).order("created_at",{ascending:true}).limit(1000);
+  (cr.data||[]).forEach(x=>(comments[x.post_id]=comments[x.post_id]||[]).push(x));}
+ loaded=true;render();
+}
+function imgUrl(path){return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;}
+function visible(){
+ const q=query.trim().toLowerCase();
+ let a=posts.filter(p=>!q||[p.from_name,p.to_name,p.text].some(x=>(x||"").toLowerCase().includes(q)));
+ if(sortMode==="top")a=[...a].sort((x,y)=>((y.likes||0)-(y.dislikes||0))-((x.likes||0)-(x.dislikes||0))||new Date(y.created_at)-new Date(x.created_at));
+ return a;
+}
+function render(){
+ $("tally").textContent=total;
+ const feed=$("feed");
+ if(!loaded){feed.innerHTML='<div class="sk"></div><div class="sk"></div><div class="sk"></div>';return;}
+ const list=visible(),votes=getVotes(),base=Math.max(total,posts.length),numOf={};
+ posts.forEach((p,i)=>numOf[p.id]=base-i);
+ if(!list.length){feed.className="";feed.innerHTML=posts.length
+  ?'<div class="empty"><h2>Tidak ada yang cocok.</h2><p>Coba kata kunci lain.</p></div>'
+  :'<div class="empty"><h2>Halaman ini masih kosong.</h2><p>Jadilah penulis makfess nomor satu.</p><button class="lnk" data-go="kirim">Tulis makfess</button></div>';return;}
+ feed.className=animateNext&&!reduce?"anim":"";
+ feed.innerHTML=list.map((p,i)=>{
+  const cs=comments[p.id]||[],v=votes[p.id]||0,isOpen=open.has(p.id),len=p.text.length,sz=len<=90?"sz-xl":len<=220?"sz-lg":"sz-md";
+  return `<article class="entry${freshFirst&&i===0&&sortMode==="new"?" fresh":""}" data-id="${p.id}" style="--i:${Math.min(i,8)}">
+  <div class="num"><small>No.</small>${numOf[p.id]}</div>
+  <div class="body">
+   <div class="by"><span><i>Dari</i><b>${esc(p.from_name||"Anonim")}</b></span>${p.to_name?`<span class="to"><i>Untuk</i><b>${esc(p.to_name)}</b></span>`:""}</div>
+   <blockquote class="msg ${sz}">${esc(p.text)}</blockquote>
+   ${p.image_path?`<figure class="shot pending"><button class="zoom" data-zoom="${esc(imgUrl(p.image_path))}" aria-label="Perbesar foto"><img loading="lazy" decoding="async" alt="Foto lampiran makfess" src="${esc(imgUrl(p.image_path))}"></button></figure>`:""}
+   <div class="foot"><time datetime="${esc(p.created_at)}">${ago(p.created_at)}</time>${isChair?`<button class="del" data-del="${p.id}">Hapus</button>`:""}</div>
+   <div class="react">
+    <button class="vt${v===1?" on":""}" data-k="1" data-id="${p.id}" aria-pressed="${v===1}">Suka<b>${p.likes||0}</b></button>
+    <button class="vt${v===-1?" on":""}" data-k="-1" data-id="${p.id}" aria-pressed="${v===-1}">Tidak suka<b>${p.dislikes||0}</b></button>
+    <button class="ct" data-id="${p.id}" aria-expanded="${isOpen}">Komentar<b>${cs.length}</b></button>
+   </div>
+   <div class="cmw${isOpen?" open":""}"><div${isOpen?"":" inert"}><div class="cm">
+    ${cs.map(c=>`<div class="c"><span class="n">${esc(c.from_name||"Anonim")}</span><span class="t">${ago(c.created_at)}</span>${isChair?` <button class="del" data-delc="${c.id}">Hapus</button>`:""}<div class="msg">${esc(c.text)}</div></div>`).join("")}
+    <div class="cf"><input class="u cn" maxlength="40" placeholder="Nama samaran (boleh kosong)" aria-label="Nama samaran"><textarea class="u ctx" maxlength="300" rows="2" placeholder="Tulis komentar anonim..." aria-label="Komentar" style="resize:vertical"></textarea><button class="btn csend" data-id="${p.id}">Kirim komentar</button><p class="err cerr" role="alert"></p></div>
+   </div></div></div>
+  </div></article>`;}).join("");
+ freshFirst=false;animateNext=false;
+}
+function setSort(m){
+ sortMode=m;
+ $("s-new").classList.toggle("on",m==="new");$("s-top").classList.toggle("on",m==="top");
+ $("s-new").setAttribute("aria-pressed",m==="new");$("s-top").setAttribute("aria-pressed",m==="top");
+ placeAll();
+}
+$("s-new").onclick=()=>{setSort("new");animateNext=true;render();};
+$("s-top").onclick=()=>{setSort("top");animateNext=true;render();};
+let qt;$("q").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{query=e.target.value;animateNext=false;render();},180);};
+
+$("feed").addEventListener("load",e=>{if(e.target.tagName==="IMG"){const f=e.target.closest(".shot");if(f)f.classList.remove("pending");}},true);
+$("feed").addEventListener("error",e=>{if(e.target.tagName==="IMG"){const f=e.target.closest(".shot");if(f){f.classList.remove("pending");f.classList.add("broken");f.innerHTML='<div class="zoom">Foto tidak bisa dimuat.</div>';}}},true);
+function openLb(src,from){lastZoomer=from;$("lbimg").src=src;$("lb").classList.remove("hide");$("lbx").focus();}
+function closeLb(){if($("lb").classList.contains("hide"))return;$("lb").classList.add("hide");$("lbimg").removeAttribute("src");if(lastZoomer)lastZoomer.focus({preventScroll:true});}
+$("lb").onclick=closeLb;
+$("feed").onclick=async e=>{
+ const d=e.target.dataset||{};
+ if(d.go==="kirim"){show("kirim");return;}
+ if(d.go==="reload"){load();return;}
+ if(d.del){if(!confirm("Hapus makfess ini beserta komentarnya?"))return;const gone=posts.find(x=>x.id===d.del);const {error}=await sb.from("menfess").delete().eq("id",d.del);if(error)toast("Gagal menghapus");else{if(gone&&gone.image_path){try{await sb.storage.from(BUCKET).remove([gone.image_path]);}catch(x){}}toast("Makfess dihapus");load();}return;}
+ if(d.delc){if(!confirm("Hapus komentar ini?"))return;const {error}=await sb.from("comments").delete().eq("id",d.delc);if(error)toast("Gagal menghapus");else{toast("Komentar dihapus");load();}return;}
+ const zb=e.target.closest(".zoom");if(zb&&zb.dataset.zoom){openLb(zb.dataset.zoom,zb);return;}
+ const b=e.target.closest("button");if(!b)return;const id=b.dataset.id;
+ if(b.classList.contains("ct")){
+  const w=b.closest(".entry").querySelector(".cmw"),inner=w.firstElementChild,o=!w.classList.contains("open");
+  w.classList.toggle("open",o);o?(inner.removeAttribute("inert"),open.add(id)):(inner.setAttribute("inert",""),open.delete(id));
+  b.setAttribute("aria-expanded",o);if(o)setTimeout(()=>w.querySelector(".ctx").focus({preventScroll:true}),320);return;}
+ if(b.classList.contains("vt")){
+  const k=+b.dataset.k,prev=getVotes()[id]||0,nv=prev===k?0:k;
+  const dl=(nv===1?1:0)-(prev===1?1:0),dd=(nv===-1?1:0)-(prev===-1?1:0);
+  b.disabled=true;const {data,error}=await sb.rpc("react",{p_id:id,p_dlike:dl,p_ddislike:dd});b.disabled=false;
+  if(error){console.error(error);toast("Gagal memberi reaksi");return;}
+  setVote(id,nv);const p=posts.find(x=>x.id===id),r=data&&data[0];if(p&&r){p.likes=r.likes;p.dislikes=r.dislikes;}
+  b.closest(".react").querySelectorAll(".vt").forEach(x=>{const kk=+x.dataset.k,on=nv===kk;x.classList.toggle("on",on);x.setAttribute("aria-pressed",on);x.querySelector("b").textContent=kk===1?p.likes:p.dislikes;});
+  return;}
+ if(b.classList.contains("csend")){
+  const card=b.closest(".entry"),ta=card.querySelector(".ctx"),text=ta.value.trim(),from=card.querySelector(".cn").value.trim(),er=card.querySelector(".cerr");
+  er.textContent="";if(text.length<2){er.textContent="Komentarnya terlalu pendek.";shake(er);return;}
+  b.disabled=true;const {error}=await sb.from("comments").insert({post_id:id,text,from_name:from||null});b.disabled=false;
+  if(error){console.error(error);er.textContent="Gagal mengirim komentar. Coba lagi.";shake(er);return;}
+  open.add(id);toast("Komentar terkirim");await load();return;}
+};
+
+/* ── compose ── */
+function check(){
+ const n=$("txt").value.length;
+ $("cn").textContent=n;$("cnt").classList.toggle("low",n>=450);$("meter").classList.toggle("low",n>=450);
+ $("meterbar").style.transform=`scaleX(${Math.min(n/500,1)})`;
+ $("send").disabled=$("txt").value.trim().length<3;
+}
+$("txt").oninput=()=>{$("err").textContent="";check();};
+
+/* ── photo / gif ── */
+function uuid(){const r=crypto.getRandomValues(new Uint8Array(16));r[6]=r[6]&15|64;r[8]=r[8]&63|128;const x=[...r].map(b=>b.toString(16).padStart(2,"0")).join("");return `${x.slice(0,8)}-${x.slice(8,12)}-${x.slice(12,16)}-${x.slice(16,20)}-${x.slice(20)}`;}
+const MB=1024*1024,fmtSize=n=>n>=MB?(n/MB).toFixed(1).replace(".",",")+" MB":Math.max(1,Math.round(n/1024))+" KB";
+function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);res(i);};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("Gambar tidak bisa dibaca."));};i.src=u;});}
+/* Photos are redrawn on a canvas: this shrinks them and also drops EXIF data (GPS, device), which protects anonymity.
+   GIFs are kept as-is so they keep moving. */
+async function prepImage(file){
+ if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type))throw new Error("Format harus JPG, PNG, WEBP, atau GIF.");
+ if(file.type==="image/gif"){if(file.size>3*MB)throw new Error("GIF maksimal 3 MB.");return {blob:file,ext:"gif",type:"image/gif"};}
+ if(file.size>20*MB)throw new Error("Foto terlalu besar (maksimal 20 MB).");
+ const img=await loadImg(file);
+ const enc=(max,q)=>{const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(img.naturalWidth*s));c.height=Math.max(1,Math.round(img.naturalHeight*s));
+  const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);
+  return new Promise(r=>c.toBlob(r,"image/jpeg",q));};
+ let blob=await enc(1280,.82);
+ if(blob&&blob.size>2.8*MB)blob=await enc(960,.7);
+ if(!blob||blob.size>3*MB)throw new Error("Foto masih terlalu besar. Pilih foto lain.");
+ return {blob,ext:"jpg",type:"image/jpeg"};
+}
+function clearImg(){if(pendingImg){URL.revokeObjectURL(pendingImg.url);pendingImg=null;}$("file").value="";$("prev").classList.add("hide");$("pick").classList.remove("hide");}
+$("pick").onclick=()=>$("file").click();
+$("unpick").onclick=()=>{clearImg();$("pick").focus();};
+$("file").onchange=async()=>{
+ const f=$("file").files[0];if(!f)return;
+ $("err").textContent="";$("pick").textContent="Memproses foto…";$("send").disabled=true;
+ try{
+  const r=await prepImage(f);clearImg();
+  pendingImg={...r,url:URL.createObjectURL(r.blob),name:f.name};
+  $("previmg").src=pendingImg.url;$("prevname").textContent=`${f.name} · ${fmtSize(r.blob.size)}`;
+  $("prev").classList.remove("hide");$("pick").classList.add("hide");
+ }catch(e){clearImg();$("err").textContent=e.message||"Foto tidak bisa dipakai.";shake($("sheetform"));}
+ $("pick").textContent="+ Foto atau GIF (opsional)";check();
+};
+
+/* paper folds, then flies toward the feed. Only called after the server confirmed. */
+function playSent(text){
+ if(reduce||!Element.prototype.animate)return null;
+ const snip=text.length>150?text.slice(0,147)+"…":text;
+ const layer=document.createElement("div");layer.className="sentlayer";layer.setAttribute("aria-hidden","true");
+ layer.innerHTML=`<div class="sheet"><div class="half t"><p>${esc(snip)}</p></div><div class="half b"><div class="face front"><p>${esc(snip)}</p></div><div class="face back"></div></div><div class="stamp">Terkirim</div></div>`;
+ layer.style.background="rgba(245,239,227,.86)";document.body.appendChild(layer);
+ const bg1=layer.animate([{opacity:0},{opacity:1}],{duration:200,fill:"both"});
+ const sheet=layer.querySelector(".sheet"),flap=layer.querySelector(".half.b"),stamp=layer.querySelector(".stamp");
+ const o={fill:"both"};
+ const a1=sheet.animate([{opacity:0,transform:"translateY(26px) scale(.94)"},{opacity:1,transform:"none"}],{...o,duration:220,easing:"cubic-bezier(.2,.7,.2,1)"});
+ const a2=flap.animate([{transform:"rotateX(0deg)"},{transform:"rotateX(180deg)"}],{...o,duration:520,delay:260,easing:"cubic-bezier(.6,0,.3,1)"});
+ const a3=stamp.animate([{opacity:0,transform:"translate(-50%,-50%) rotate(-6deg) scale(1.7)"},{opacity:1,transform:"translate(-50%,-50%) rotate(-6deg) scale(1)"}],{...o,duration:200,delay:760,easing:"cubic-bezier(.2,.7,.2,1)"});
+ const a4=sheet.animate([{transform:"none",opacity:1},{transform:"translateY(-34vh) scale(.62)",opacity:0}],{fill:"forwards",duration:420,delay:1080,easing:"cubic-bezier(.5,0,.9,.4)"});
+ const bg2=layer.animate([{opacity:1},{opacity:0}],{fill:"forwards",duration:380,delay:1120,easing:"ease-in"});
+ // sheet keeps a1's final state until a4 starts; a4 overrides it (later animation wins)
+ return {done:Promise.all([a1.finished,a2.finished,a3.finished,a4.finished,bg1.finished,bg2.finished]).then(()=>layer.remove()).catch(()=>layer.remove()),flyAt:1000};
+}
+
+async function send(){
+ const text=$("txt").value.trim(),er=$("err");
+ if(text.length<3){er.textContent="Tulis minimal 3 karakter.";shake($("sheetform"));return;}
+ if(text.length>500){er.textContent="Pesan maksimal 500 karakter.";shake($("sheetform"));return;}
+ er.textContent="";const btn=$("send");btn.disabled=true;btn.classList.add("busy");btn.textContent=pendingImg?"Mengunggah…":"Mengirim…";
+ const row={text,to_name:$("to").value.trim()||null,from_name:$("from").value.trim()||null};
+ if(pendingImg){
+  const path=uuid()+"."+pendingImg.ext;
+  const up=await sb.storage.from(BUCKET).upload(path,pendingImg.blob,{contentType:pendingImg.type,cacheControl:"31536000",upsert:false});
+  if(up.error){console.error(up.error);btn.classList.remove("busy");btn.textContent="Kirim makfess";er.textContent="Foto gagal diunggah. Coba lagi, atau buang fotonya.";shake($("sheetform"));check();return;}
+  row.image_path=path;
+ }
+ const {error}=await sb.from("menfess").insert(row);
+ btn.classList.remove("busy");btn.textContent="Kirim makfess";
+ if(error){console.error(error);er.textContent="Gagal mengirim. Periksa koneksi lalu coba lagi.";shake($("sheetform"));check();return;}
+ // confirmed by the server → now (and only now) celebrate
+ const fx=playSent(text);
+ $("txt").value="";$("to").value="";clearImg();check();
+ setSort("new");$("q").value="";query="";freshFirst=true;animateNext=false;
+ const loading=load();
+ if(fx){await sleep(fx.flyAt);await loading;show("feed");await fx.done;}else{await loading;show("feed");}
+ toast("Makfess terkirim");
+}
+$("send").onclick=send;
+$("txt").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))send();};
+
+/* ── ketua ── */
+function gate(session){
+ isChair=!!session;
+ $("lo").classList.toggle("hide",!isChair);
+ $("lo").innerHTML=isChair?'<span class="on-dot" aria-hidden="true"></span>Ketua · Keluar':"Keluar";
+ setDrop(false);render();
+}
+function setDrop(o){$("drop").classList.toggle("open",o);$("drop").setAttribute("aria-hidden",!o);$("drop").firstElementChild.toggleAttribute("inert",!o);}
+/* Ketua login has no menu item. It opens only through a hidden trigger:
+   (a) tap the Makfess logo 5x quickly, (b) Ctrl/Cmd+Shift+K, (c) open the page with #ketua */
+function openAdmin(){
+ if(isChair){toast("Mode ketua aktif");return;}
+ const o=!$("drop").classList.contains("open");setDrop(o);window.scrollTo({top:0});
+ if(o)setTimeout(()=>$("em").focus(),350);
+}
+let taps=0,tapT;
+$("brand").addEventListener("click",()=>{taps++;clearTimeout(tapT);tapT=setTimeout(()=>taps=0,1500);if(taps>=5){taps=0;openAdmin();}});
+addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="k"){e.preventDefault();openAdmin();}
+ if(e.key==="Escape"){if(!$("lb").classList.contains("hide")){closeLb();return;}if($("drop").classList.contains("open"))setDrop(false);}});
+function hashAdmin(){if(location.hash==="#ketua"){history.replaceState(null,"",location.pathname+location.search);openAdmin();}}
+addEventListener("hashchange",hashAdmin);
+$("li").onclick=async()=>{
+ const er=$("lerr");er.textContent="";$("li").disabled=true;
+ const {data,error}=await sb.auth.signInWithPassword({email:$("em").value.trim(),password:$("pw").value});
+ $("li").disabled=false;
+ if(error){er.textContent="Email atau password salah.";shake(er);return;}
+ gate(data.session);toast("Mode ketua aktif");
+};
+$("pw").onkeydown=e=>{if(e.key==="Enter")$("li").click();};
+$("lo").onclick=async()=>{await sb.auth.signOut();gate(null);toast("Keluar dari mode ketua");};
+
+/* ── start ── */
+setDrop(false);render();check();
+sb.auth.getSession().then(({data})=>{gate(data.session);hashAdmin();});
+load();
+setTimeout(()=>document.body.classList.remove("intro"),2200);
+setInterval(()=>{const a=document.activeElement;if(a&&a.closest&&a.closest("#feed")&&(a.tagName==="TEXTAREA"||a.tagName==="INPUT"))return;
+ if([...document.querySelectorAll("#feed .ctx")].some(x=>x.value))return;if(current==="feed"&&!document.hidden)load();},30000);
+</script>
+</body>
+</html>
