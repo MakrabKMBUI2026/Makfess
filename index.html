@@ -206,6 +206,28 @@ label{display:block;font-size:.82rem;font-weight:600;color:var(--mut);margin:0}
 .lb{position:fixed;inset:0;z-index:70;background:rgba(28,27,24,.93);display:grid;place-items:center;padding:16px;animation:viewin .25s var(--out)}
 .lb img{max-width:94vw;max-height:84vh;display:block;border:6px solid var(--paper)}
 .lb .lnk{position:absolute;top:max(10px,env(safe-area-inset-top,0px));right:12px;color:var(--ivory);font-size:1rem;padding:10px 12px}
+/* ───── song ───── */
+.songfield{margin:16px 0 0 20px}
+.sbox{position:relative}
+.slist{position:absolute;left:0;right:0;top:100%;z-index:12;max-height:272px;overflow:auto;margin:2px 0 0;padding:0;list-style:none;background:var(--paper);border:1.5px solid var(--ink)}
+.slist li{display:flex;gap:12px;align-items:center;padding:8px 10px;min-height:60px;cursor:pointer}
+.slist li[aria-selected="true"],.slist li:hover{background:var(--lime)}
+.slist .t,.sg .t{min-width:0;line-height:1.3}
+.slist b,.sg b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slist small,.sg small{display:block;color:var(--mut);font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slist img,.sg img{width:46px;height:46px;object-fit:cover;border:1.5px solid var(--ink);background:var(--paper2);flex:none}
+.sstat{margin:8px 0 0;color:var(--mut);font-size:.88rem;min-height:1px}
+.sg{position:relative;display:flex;align-items:center;gap:12px;margin-top:14px;padding:10px 10px 12px;border:1.5px solid var(--ink);background:var(--paper2);max-width:440px;overflow:hidden}
+.sg .t{flex:1}
+.sg a{font-size:.8rem;font-weight:600;color:var(--coralink);text-underline-offset:3px}
+.sg .play{flex:none;width:48px;height:48px;display:grid;place-items:center;border:1.5px solid var(--ink);background:var(--ink);color:var(--ivory);transition:background .2s,color .2s,transform .12s}
+.sg .play:active{transform:scale(.94)}
+.sg .play.on{background:var(--lime);color:var(--ink)}
+.sg .play svg{width:18px;height:18px;fill:currentColor}
+.sg .play .i-pause{display:none}.sg .play.on .i-pause{display:block}.sg .play.on .i-play{display:none}
+.sg .bar{position:absolute;left:0;right:0;bottom:0;height:3px}
+.sg .bar i{display:block;height:100%;background:var(--coral);transform:scaleX(0);transform-origin:left;transition:transform .25s linear}
+.sg .rm{flex:none;background:none;border:0;color:var(--coralink);font-weight:700;text-decoration:underline;padding:10px 4px;min-height:44px}
 @media (prefers-reduced-motion:reduce){
  *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
@@ -270,6 +292,15 @@ label{display:block;font-size:.82rem;font-weight:600;color:var(--mut);margin:0}
     <button type="button" class="lnk" id="pick">+ Foto atau GIF (opsional)</button>
     <div class="prev hide" id="prev"><img id="previmg" alt="Pratinjau lampiran"><div><span id="prevname"></span><button type="button" class="lnk" id="unpick">Buang foto</button></div></div>
    </div>
+   <div class="songfield">
+    <label for="song">Lagu (opsional)</label>
+    <div class="sbox" id="sbox">
+     <input class="u" id="song" role="combobox" aria-expanded="false" aria-controls="slist" aria-autocomplete="list" autocomplete="off" placeholder="Cari judul lagu atau artis">
+     <ul class="slist hide" id="slist" role="listbox" aria-label="Hasil pencarian lagu"></ul>
+     <p class="sstat" id="sstat" role="status"></p>
+    </div>
+    <div class="sg hide" id="songsel"></div>
+   </div>
    <div class="meter" id="meter"><i id="meterbar"></i></div>
    <div class="row"><span class="cnt" id="cnt"><b id="cn">0</b>/500</span><button class="btn" id="send" disabled>Kirim makfess</button></div>
    <p class="err" id="err" role="alert"></p>
@@ -293,7 +324,7 @@ const BUCKET="makfess-images";
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-let pendingImg=null,lastZoomer=null,isChair=false,posts=[],comments={},open=new Set(),sortMode="new",query="",loaded=false,total=0,freshFirst=false,animateNext=true,current="feed";
+let pickedSong=null,sres=[],sidx=-1,sTok=0,sTimer,playId=null,pendingImg=null,lastZoomer=null,isChair=false,posts=[],comments={},open=new Set(),sortMode="new",query="",loaded=false,total=0,freshFirst=false,animateNext=true,current="feed";
 
 /* ── helpers ── */
 function ago(t){const s=Math.max(0,(Date.now()-new Date(t))/1000);
@@ -317,7 +348,7 @@ placeAll();
 
 /* ── views ── */
 function show(t){
- current=t;
+ current=t;if(t!=="feed")stopPlay();
  $("v-kirim").classList.toggle("hide",t!=="kirim");$("v-feed").classList.toggle("hide",t!=="feed");
  [["feed","t-feed"],["kirim","t-kirim"]].forEach(([k,id])=>{const b=$(id);b.classList.toggle("on",k===t);k===t?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current");});
  $("fab").classList.toggle("hide",t!=="feed");
@@ -332,16 +363,21 @@ $("fab").onclick=()=>show("kirim");
 /* ── feed ── */
 async function load(){
  const [r,c]=await Promise.all([
-  sb.from("menfess").select("id,from_name,to_name,text,image_path,likes,dislikes,created_at").order("created_at",{ascending:false}).limit(100),
+  sb.from("menfess").select("id,from_name,to_name,text,image_path,song_title,song_artist,song_art,song_preview,song_url,likes,dislikes,created_at").order("created_at",{ascending:false}).limit(100),
   sb.from("menfess").select("id",{count:"exact",head:true})
  ]);
  let {data,error}=r;
- if(error&&/image_path/.test(error.message||"")){const r2=await sb.from("menfess").select("id,from_name,to_name,text,likes,dislikes,created_at").order("created_at",{ascending:false}).limit(100);data=r2.data;error=r2.error;}
+ if(error&&/image_path|song_/.test(error.message||"")){const r2=await sb.from("menfess").select("id,from_name,to_name,text,likes,dislikes,created_at").order("created_at",{ascending:false}).limit(100);data=r2.data;error=r2.error;}
  if(error){console.error(error);if(!loaded)$("feed").innerHTML='<div class="empty"><h2>Feed belum bisa dimuat.</h2><p>Periksa koneksimu, lalu coba lagi.</p><button class="lnk" data-go="reload">Muat ulang</button></div>';return;}
  posts=data||[];total=(c&&c.count)||posts.length;comments={};
  if(posts.length){const cr=await sb.from("comments").select("id,post_id,from_name,text,created_at").in("post_id",posts.map(p=>p.id)).order("created_at",{ascending:true}).limit(1000);
   (cr.data||[]).forEach(x=>(comments[x.post_id]=comments[x.post_id]||[]).push(x));}
  loaded=true;render();
+}
+function songHtml(p){
+ if(!p.song_title)return "";
+ const art=/^https:\/\//.test(p.song_art||"")?p.song_art:"";
+ return `<div class="sg" data-song="${p.id}">${art?`<img src="${esc(art)}" alt="" loading="lazy" decoding="async">`:""}<div class="t"><b>${esc(p.song_title)}</b><small>${esc(p.song_artist||"")}</small></div>${p.song_preview?`<button class="play" data-play="${p.id}" aria-pressed="false" aria-label="Putar cuplikan: ${esc(p.song_title)}"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>`:""}<div class="bar"><i></i></div></div>`;
 }
 function imgUrl(path){return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;}
 function visible(){
@@ -367,6 +403,7 @@ function render(){
   <div class="body">
    <div class="by"><span><i>Dari</i><b>${esc(p.from_name||"Anonim")}</b></span>${p.to_name?`<span class="to"><i>Untuk</i><b>${esc(p.to_name)}</b></span>`:""}</div>
    <blockquote class="msg ${sz}">${esc(p.text)}</blockquote>
+   ${songHtml(p)}
    ${p.image_path?`<figure class="shot pending"><button class="zoom" data-zoom="${esc(imgUrl(p.image_path))}" aria-label="Perbesar foto"><img loading="lazy" decoding="async" alt="Foto lampiran makfess" src="${esc(imgUrl(p.image_path))}"></button></figure>`:""}
    <div class="foot"><time datetime="${esc(p.created_at)}">${ago(p.created_at)}</time>${isChair?`<button class="del" data-del="${p.id}">Hapus</button>`:""}</div>
    <div class="react">
@@ -379,7 +416,7 @@ function render(){
     <div class="cf"><input class="u cn" maxlength="40" placeholder="Nama samaran (boleh kosong)" aria-label="Nama samaran"><textarea class="u ctx" maxlength="300" rows="2" placeholder="Tulis komentar anonim..." aria-label="Komentar" style="resize:vertical"></textarea><button class="btn csend" data-id="${p.id}">Kirim komentar</button><p class="err cerr" role="alert"></p></div>
    </div></div></div>
   </div></article>`;}).join("");
- freshFirst=false;animateNext=false;
+ freshFirst=false;animateNext=false;setPlayUI();
 }
 function setSort(m){
  sortMode=m;
@@ -402,6 +439,10 @@ $("feed").onclick=async e=>{
  if(d.go==="reload"){load();return;}
  if(d.del){if(!confirm("Hapus makfess ini beserta komentarnya?"))return;const gone=posts.find(x=>x.id===d.del);const {error}=await sb.from("menfess").delete().eq("id",d.del);if(error)toast("Gagal menghapus");else{if(gone&&gone.image_path){try{await sb.storage.from(BUCKET).remove([gone.image_path]);}catch(x){}}toast("Makfess dihapus");load();}return;}
  if(d.delc){if(!confirm("Hapus komentar ini?"))return;const {error}=await sb.from("comments").delete().eq("id",d.delc);if(error)toast("Gagal menghapus");else{toast("Komentar dihapus");load();}return;}
+ const pb=e.target.closest(".play");
+ if(pb){const id=pb.dataset.play,p=posts.find(x=>x.id===id);if(!p||!p.song_preview)return;
+  if(playId===id){au.paused?au.play().catch(()=>{}):au.pause();return;}
+  stopPlay();playId=id;au.src=p.song_preview;au.play().catch(()=>{toast("Cuplikan lagu tidak bisa diputar");stopPlay();});return;}
  const zb=e.target.closest(".zoom");if(zb&&zb.dataset.zoom){openLb(zb.dataset.zoom,zb);return;}
  const b=e.target.closest("button");if(!b)return;const id=b.dataset.id;
  if(b.classList.contains("ct")){
@@ -432,6 +473,64 @@ function check(){
  $("send").disabled=$("txt").value.trim().length<3;
 }
 $("txt").oninput=()=>{$("err").textContent="";check();};
+
+/* ── lagu: pemutar cuplikan 30 detik ── */
+const au=new Audio();au.preload="none";
+function setPlayUI(){document.querySelectorAll(".sg .play").forEach(b=>{const on=b.dataset.play===playId&&!au.paused;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});}
+function stopPlay(){au.pause();playId=null;document.querySelectorAll(".sg .bar i").forEach(i=>i.style.transform="scaleX(0)");setPlayUI();}
+au.addEventListener("play",setPlayUI);au.addEventListener("pause",setPlayUI);au.addEventListener("ended",stopPlay);
+au.addEventListener("timeupdate",()=>{if(!playId||!au.duration)return;const b=document.querySelector(`.sg[data-song="${playId}"] .bar i`);if(b)b.style.transform=`scaleX(${au.currentTime/au.duration})`;});
+
+/* ── lagu: cari dan pilih (iTunes Search API, tanpa kunci) ── */
+const SONG_RE={art:/^https:\/\/[a-z0-9.-]+\.mzstatic\.com\//,prev:/^https:\/\/([a-z0-9.-]+\.)?(mzstatic\.com|itunes\.apple\.com)\//,url:/^https:\/\/(music|itunes)\.apple\.com\//};
+function cleanSong(t){
+ const s={title:String(t.trackName||"").slice(0,120),artist:String(t.artistName||"").slice(0,120),art:String(t.artworkUrl100||"").replace("100x100bb","200x200bb"),preview:t.previewUrl||null,url:t.trackViewUrl||null};
+ if(!s.title||!s.artist||!SONG_RE.art.test(s.art))return null;
+ if(s.preview&&!SONG_RE.prev.test(s.preview))s.preview=null;
+ if(s.url&&!SONG_RE.url.test(s.url))s.url=null;
+ return s;
+}
+function jsonp(url){return new Promise((res,rej)=>{const cb="itcb"+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement("script");
+ const done=()=>{clearTimeout(t);delete window[cb];s.remove();},t=setTimeout(()=>{done();rej(new Error("timeout"));},8000);
+ window[cb]=d=>{done();res(d);};s.onerror=()=>{done();rej(new Error("jsonp"));};s.src=url+"&callback="+cb;document.head.appendChild(s);});}
+async function searchSongs(term){
+ const u="https://itunes.apple.com/search?media=music&entity=song&limit=8&country=ID&term="+encodeURIComponent(term);
+ let d;try{const r=await fetch(u);if(!r.ok)throw new Error("http");d=await r.json();}catch(e){d=await jsonp(u);}
+ return (d.results||[]).map(cleanSong).filter(Boolean);
+}
+function listStatus(msg){$("slist").classList.add("hide");$("song").setAttribute("aria-expanded","false");$("sstat").textContent=msg;}
+function closeList(){$("sstat").textContent="";$("slist").classList.add("hide");$("song").setAttribute("aria-expanded","false");$("song").removeAttribute("aria-activedescendant");sidx=-1;}
+function paintList(){
+ $("sstat").textContent="";
+ $("slist").innerHTML=sres.map((s,i)=>`<li role="option" id="so-${i}" data-i="${i}" aria-selected="${i===sidx}"><img src="${esc(s.art)}" alt="" loading="lazy"><div class="t"><b>${esc(s.title)}</b><small>${esc(s.artist)}</small></div></li>`).join("");
+ $("slist").classList.remove("hide");$("song").setAttribute("aria-expanded","true");
+ if(sidx>=0){$("song").setAttribute("aria-activedescendant","so-"+sidx);const el=$("so-"+sidx);if(el)el.scrollIntoView({block:"nearest"});}
+}
+async function runSearch(term){
+ const my=++sTok;listStatus("Mencari…");
+ try{const r=await searchSongs(term);if(my!==sTok)return;sres=r;sidx=-1;
+  if(!r.length)listStatus("Lagu tidak ditemukan. Coba kata kunci lain.");else{paintList();if($("slist").getBoundingClientRect().bottom>innerHeight)$("song").scrollIntoView({block:"start",behavior:reduce?"auto":"smooth"});}}
+ catch(e){if(my!==sTok)return;console.error(e);listStatus("Pencarian lagu sedang tidak bisa. Kamu tetap bisa kirim makfess tanpa lagu.");}
+}
+$("song").oninput=()=>{clearTimeout(sTimer);const q=$("song").value.trim();
+ if(q.length<2){sTok++;closeList();return;}
+ sTimer=setTimeout(()=>runSearch(q),380);};
+$("song").onkeydown=e=>{
+ if(e.key==="ArrowDown"||e.key==="ArrowUp"){if(!sres.length||$("slist").classList.contains("hide"))return;e.preventDefault();
+  sidx=(sidx+(e.key==="ArrowDown"?1:-1)+sres.length)%sres.length;paintList();}
+ else if(e.key==="Enter"&&sidx>=0){e.preventDefault();pickSong(sidx);}
+ else if(e.key==="Escape"&&!$("slist").classList.contains("hide")){e.stopPropagation();closeList();}
+};
+$("slist").onmousedown=e=>{const li=e.target.closest("li[data-i]");if(li){e.preventDefault();pickSong(+li.dataset.i);}};
+document.addEventListener("click",e=>{if(!e.target.closest("#sbox"))closeList();});
+function pickSong(i){
+ pickedSong=sres[i];if(!pickedSong)return;closeList();
+ const s=pickedSong;
+ $("songsel").innerHTML=`<img src="${esc(s.art)}" alt=""><div class="t"><b>${esc(s.title)}</b><small>${esc(s.artist)}</small></div><button type="button" class="rm" id="songrm">Ganti</button>`;
+ $("songsel").classList.remove("hide");$("sbox").classList.add("hide");
+ $("songrm").onclick=()=>{clearSong();$("song").focus();};
+}
+function clearSong(){pickedSong=null;sres=[];sTok++;$("songsel").classList.add("hide");$("songsel").innerHTML="";$("sbox").classList.remove("hide");$("song").value="";closeList();}
 
 /* ── photo / gif ── */
 function uuid(){const r=crypto.getRandomValues(new Uint8Array(16));r[6]=r[6]&15|64;r[8]=r[8]&63|128;const x=[...r].map(b=>b.toString(16).padStart(2,"0")).join("");return `${x.slice(0,8)}-${x.slice(8,12)}-${x.slice(12,16)}-${x.slice(16,20)}-${x.slice(20)}`;}
@@ -499,12 +598,13 @@ async function send(){
   if(up.error){console.error(up.error);btn.classList.remove("busy");btn.textContent="Kirim makfess";er.textContent="Foto gagal diunggah. Coba lagi, atau buang fotonya.";shake($("sheetform"));check();return;}
   row.image_path=path;
  }
+ if(pickedSong){row.song_title=pickedSong.title;row.song_artist=pickedSong.artist;row.song_art=pickedSong.art;row.song_preview=pickedSong.preview;row.song_url=pickedSong.url;}
  const {error}=await sb.from("menfess").insert(row);
  btn.classList.remove("busy");btn.textContent="Kirim makfess";
  if(error){console.error(error);er.textContent="Gagal mengirim. Periksa koneksi lalu coba lagi.";shake($("sheetform"));check();return;}
  // confirmed by the server → now (and only now) celebrate
  const fx=playSent(text);
- $("txt").value="";$("to").value="";clearImg();check();
+ $("txt").value="";$("to").value="";clearImg();clearSong();check();
  setSort("new");$("q").value="";query="";freshFirst=true;animateNext=false;
  const loading=load();
  if(fx){await sleep(fx.flyAt);await loading;show("feed");await fx.done;}else{await loading;show("feed");}
